@@ -5,6 +5,15 @@ This small library allows it to embed a http://vertx.io[Vert.x] instance inside 
 
 == Quickstart
 
+Import the library as a dependency in your build tool of choice:
+
+```groovy
+// Gradle script
+dependencies {
+    implementation 'org.unbroken-dome.vertx-spring:vertx-spring:0.1.0'
+}
+```
+
 To use Vert.x inside your application, simply put the `@EnableVertx` annotation on one of
 your `@Configuration` classes:
 
@@ -210,7 +219,7 @@ Verticle instance has already been created as a singleton.
 To use multiple-instance deployment, declare your verticles either as prototype-scoped (with `@Scope("prototype")`),
 or use a `FactoryBean` that creates prototypes.
 
-```
+```java
 @Configuration
 public class MyConfiguration {
 
