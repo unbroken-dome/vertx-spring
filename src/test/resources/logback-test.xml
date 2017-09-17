@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <charset>utf8</charset>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+    <logger name="org.unbrokendome.vertx.spring" level="DEBUG" />
+    <logger name="org.springframework" level="DEBUG" />
+    <logger name="org.springframework.beans.factory.support.DefaultListableBeanFactory" level="INFO" />
+    <logger name="io.vertx" level="DEBUG" />
+
+</configuration>

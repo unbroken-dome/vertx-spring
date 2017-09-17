@@ -1,0 +1,256 @@
+= Vert.x Spring Tools
+
+This small library allows it to embed a http://vertx.io[Vert.x] instance inside a Spring
+ application context.
+
+== Quickstart
+
+To use Vert.x inside your application, simply put the `@EnableVertx` annotation on one of
+your `@Configuration` classes:
+
+```java
+@Configuration
+@EnableVertx
+public class MyConfiguration {
+
+    // Verticle beans will be auto-deployed once Vertx has started up
+    @Bean
+    public MyVerticle myVerticle() { return new MyVerticle(); }
+}
+```
+
+The `Vertx` instance is created, started and shut down as part of the Spring
+https://docs.spring.io/spring/docs/current/spring-framework-reference/html/beans.html#beans-factory-lifecycle-processor[Lifecycle].
+Spring beans of type `Verticle` will be detected and deployed automatically.
+
+Under the covers, using the `@EnableVertx` annotation will import some Spring configurations and ultimately register
+a `SpringVertx` bean. It serves as the container for a `Vertx` instance and adapts it to the Spring lifecycle.
+
+== Configuring the `Vertx` instance
+
+For additional configuration, you can make any of your beans (or `@Configuration` classes) implement the
+`VertxConfigurer` interface. It has one method, `configure`, that can be used to set the `VertxOptions` or register
+verticles for deployment once the `Vertx` instance has been started.
+
+```java
+@Configuration
+@EnableVertx
+public class MyConfiguration implements VertxConfigurer {
+
+    @Override
+    public void configure(SpringVertx.Builder builder) {
+        builder
+            // Register a custom Verticle for deployment
+            .verticle(new MyVerticle())
+            // Modify the VertxOptions
+            .options(opt -> opt.setClustered(true));
+    }
+}
+```
+
+When multiple `VertxConfigurer` beans are present, their ordering can be specified by annotating them with `@Order`.
+
+When using Spring Boot, it is also possible to specify most of the `VertxOptions` settings via the application
+properties (see below).
+
+
+== Using the `Vertx` instance
+
+Vert.x does not separate between creation and startup of a `Vertx` instance. Since it is created as a result of the
+Spring lifecycle (not on Application context refresh), it is not available when the application context is initialized,
+so it cannot be injected into other beans directly.
+
+The recommended way to use Vert.x with this library is to register `Verticle` beans (see below for more details).
+Verticles will have their lifecycle managed by Vert.x, and will be initialized with the `Vert.x` instance with which
+they can work.
+
+If you _really_ need to use the `Vertx` instance from outside a Verticle, you can have any bean implement the
+`VertxListener` interface, and it will be notified about the Vertx instance starting and stopping (passing the
+`Vertx` object as a parameter):
+
+```java
+@Component
+public class MyVertxComponent implements VertxListener {
+
+    @Override
+    public void vertxStarted(Vertx vertx, VertxOptions options) {
+        // Work with the Vertx instance
+    }
+}
+```
+
+The events that the listener supports (Vertx started/stopped, verticle deployed/undeployed) are also published as
+Spring `ApplicationEvent`s, so you can subscribe to them using an `ApplicationListener`:
+
+```java
+@Component
+public class MyVertxComponent implements ApplicationListener<VertxStartedEvent> {
+
+    @Override
+    public void onApplicationEvent(VertxStartedEvent event) {
+        Vertx vertx = event.getVertx();
+        // Work with the Vertx instance
+    }
+}
+```
+
+== Using Verticles
+
+http://vertx.io/docs/vertx-core/java/#_verticles[Verticles] are the conventional unit of modularization in Vert.x.
+If you add a Spring bean to your application context whose type is `Verticle` (or an implementing class), it will be
+picked up and deployed automatically once the `Vertx` instance has started.
+
+If you do not like this auto-deployment behavior, you can disable it using the `deployVerticles` parameter of the
+`@EnableVertx` annotation (by default it is `true`):
+
+```java
+@Configuration
+@EnableVertx(deployVerticles = false)
+public class MyConfiguration {
+
+    // This verticle will *not* be deployed automatically
+    @Bean
+    public Verticle myVerticle() { return new MyVerticle(); }
+}
+```
+
+You can also disable auto-deployment per bean, using the `@VerticleDeployment` annotation:
+
+```java
+@Configuration
+@EnableVertx
+public class MyConfiguration {
+
+    // This verticle will be deployed automatically...
+    @Bean
+    public AutoVerticle autoVerticle() { return new AutoVerticle(); }
+
+    // ...but this one will not
+    @Bean
+    @VerticleDeployment(false)
+    public ManualVerticle manualVerticle() { return new ManualVerticle(); }
+}
+```
+
+=== Customizing Verticle Deployment Options
+
+There are several methods to fine-tune the verticle deployment process (which is equivalent of providing a
+`DeploymentOptions` instance when calling `Vertx.deployVerticle()` directly).
+
+First, most of the settings from `DeploymentOptions` have a corresponding attribute in the `@VerticleDeployment`
+annotation:
+
+```java
+@Configuration
+@EnableVertx
+public class MyConfiguration {
+
+    @Bean
+    @VerticleDeployment(ha = true, instances = 4)
+    public Verticle myVerticle() { return new MyVerticle(); }
+}
+```
+
+Another approach is to wrap the verticle inside a `VerticleRegistrationBean` that contains the verticle as well
+as the deployment options (be careful not to make the Verticle itself a `@Bean` in this case, or it will be deployed
+twice):
+
+```java
+@Configuration
+@EnableVertx
+public class MyConfiguration {
+
+    @Bean
+    public VerticleRegistrationBean myVerticle() {
+        DeploymentOptions options = new DeploymentOptions()
+            .setHa(true)
+            .setInstances(4);
+        return new VerticleRegistrationBean(new MyVerticle())
+            .setDeploymentOptions(options);
+    }
+}
+```
+
+The verticle can also be "self-describing" its desired deployment options, by implementing the
+`DeployableVerticle` interface:
+
+```java
+@Component
+public class MyVerticle extends AbstractVerticle implements DeployableVerticle {
+
+    @Override
+    public DeploymentOptions getDeploymentOptions() {
+        return new DeploymentOptions()
+            .setHa(true)
+            .setInstances(4);
+    }
+}
+```
+
+
+=== Customizing Verticle Deployment Order
+
+The standard Spring mechanisms `@Order` and `Ordered` are recognized and will be used for ordering
+verticle deployment. All verticles with a lower order value are guaranteed to be deployed before
+verticles with a higher value, while all verticles with the same value are deployed simultaneously.
+
+Again, there are several ways to specify the order:
+
+- using the `@Order` annotation on the bean method or a `@Component` class
+- as a property on the `VerticleRegistrationBean`
+- by having the Verticle class itself implement `Ordered`
+
+
+== Deploying multiple instances of Verticle beans
+
+Vert.x core allows the number of verticle instances to be specified in the `DeploymentOptions`, for example when
+distribution of loads across multiple processor cores is desired. However, this obviously doesn't work if the
+Verticle instance has already been created as a singleton.
+
+To use multiple-instance deployment, declare your verticles either as prototype-scoped (with `@Scope("prototype")`),
+or use a `FactoryBean` that creates prototypes.
+
+```
+@Configuration
+public class MyConfiguration {
+
+    @Bean
+    @Scope("prototype")
+    @VerticleDeployment(instances = 4)
+    public PrototypeVerticle prototypeVerticle() {
+        return new PrototypeVerticle();
+    }
+
+    @Bean
+    @VerticleDeployment(instances = 3)
+    public SomeVerticleFactoryBean factoryCreatedVerticle() {
+        return new SomeVerticleFactoryBean();
+    }
+}
+```
+
+
+=== The Spring Verticle Factory
+
+For Vert.x to create Verticle instances in a multi-instance deployment, it needs a `VerticleFactory` that creates
+verticles by name. This library contains a `VerticleFactory` implementation that resolves verticle names to prototype
+Spring beans from the application context. It is registered with the `spring:` prefix by default. You can change the
+prefix using the `verticleFactoryPrefix` method on `SpringVertx.Builder`.
+
+The `spring:` prefix can also be used to deploy additional verticles after startup.
+
+
+== Spring Boot Auto-Configuration
+
+When using Spring Boot, Vertx will be auto-configured by having this library on the classpath. Most settings from
+`VertxOptions` can be configured as properties from any Spring `PropertySource`. Most commonly, you can configure
+these settings in your _application.yml_ or _application.properties_:
+
+```yaml
+vertx:
+  clustered: true
+  event-bus:
+    host: localhost
+    port: 42042
+```
+

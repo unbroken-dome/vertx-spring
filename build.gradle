@@ -1,0 +1,90 @@
+plugins {
+    id 'java-library'
+    id 'groovy'
+    id 'io.spring.dependency-management' version '1.0.3.RELEASE'
+    id 'org.unbroken-dome.test-sets' version '1.4.2'
+    id 'maven-publish'
+    id 'com.jfrog.bintray' version '1.7'
+    id 'nebula.optional-base' version '3.2.0'
+}
+
+sourceCompatibility = 1.8
+
+repositories {
+    jcenter()
+}
+
+sourceSets {
+    testCommon {
+        java.srcDirs = ['src/test-common/java']
+    }
+}
+
+configurations {
+    testCommonImplementation.extendsFrom implementation
+}
+
+testSets {
+    bootTest { dirName = 'boot-test' }
+    actuatorTest {
+        extendsFrom bootTest
+        dirName = 'actuator-test'
+    }
+}
+
+ext {
+    springVersion = '4.3.11.RELEASE'
+    springBootVersion = '1.5.6.RELEASE'
+    slf4jVersion = '1.7.25'
+    vertxVersion = '3.4.2'
+    logbackVersion = '1.1.11'
+}
+
+dependencies {
+    api "org.springframework:spring-core:$springVersion"
+    api "org.springframework:spring-context:$springVersion"
+    api "io.vertx:vertx-core:$vertxVersion"
+    api "org.springframework.boot:spring-boot:$springBootVersion", optional
+    api "org.springframework.boot:spring-boot-autoconfigure:$springBootVersion", optional
+    api "org.springframework.boot:spring-boot-actuator:$springBootVersion", optional
+    compileOnly "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion"
+
+    implementation "org.slf4j:slf4j-api:$slf4jVersion"
+
+    testImplementation "org.springframework:spring-test:$springVersion"
+    testImplementation 'org.spockframework:spock-core'
+    testImplementation 'org.spockframework:spock-spring'
+    testImplementation "org.slf4j:jcl-over-slf4j:$slf4jVersion"
+    testRuntimeOnly "ch.qos.logback:logback-classic:$logbackVersion"
+    testImplementation sourceSets.testCommon.output
+
+    bootTestImplementation 'org.springframework.boot:spring-boot-starter-test'
+    bootTestImplementation 'org.springframework.boot:spring-boot-starter-logging'
+
+    actuatorTestImplementation 'org.springframework.boot:spring-boot-actuator'
+}
+
+
+dependencyManagement {
+    testImplementation {
+        imports {
+            mavenBom('org.spockframework:spock-bom:1.1-groovy-2.4')
+        }
+    }
+
+    bootTestImplementation {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion")
+        }
+    }
+}
+
+testSets.collect { configurations[it.implementationConfigurationName] }
+        *.exclude group: 'commons-logging'
+
+
+bootTest.shouldRunAfter test
+check.dependsOn bootTest, actuatorTest
+
+
+apply from: "$rootDir/publishing.gradle"
