@@ -10,7 +10,7 @@ Import the library as a dependency in your build tool of choice:
 [source,groovy]
 ----
 dependencies {
-    implementation 'org.unbroken-dome.vertx-spring:vertx-spring:0.1.0'
+    implementation 'org.unbroken-dome.vertx-spring:vertx-spring:0.2.0'
 }
 ----
 
