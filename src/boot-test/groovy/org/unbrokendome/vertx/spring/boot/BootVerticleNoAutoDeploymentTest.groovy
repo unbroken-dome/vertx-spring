@@ -9,7 +9,8 @@ import spock.lang.Specification
 
 @SpringBootTest
 @TestPropertySource(properties = [
-    'vertx.auto-deploy-verticles=false'
+    'vertx.auto-deploy-verticles=false',
+    'logging.level.org.springframework.boot.autoconfigure=DEBUG'
 ])
 class BootVerticleNoAutoDeploymentTest extends Specification {
 

@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-  org.unbrokendome.vertx.spring.boot.VertxAutoConfiguration
+  org.unbrokendome.vertx.spring.boot.VertxAutoConfiguration,\
+  org.unbrokendome.vertx.spring.boot.clustermanager.ClusterManagerAutoConfiguration

@@ -9,6 +9,7 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.metrics.MetricsOptions;
 import io.vertx.core.spi.VertxFactory;
 import io.vertx.core.spi.VertxMetricsFactory;
+import io.vertx.core.spi.cluster.ClusterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanFactory;
@@ -282,6 +283,15 @@ public class SpringVertx implements SmartLifecycle, BeanFactoryAware {
         public Builder options(VertxOptions options) {
             this.options = new VertxOptions(options);
             return this;
+        }
+
+
+        public Builder clusterManager(ClusterManager clusterManager) {
+            return options(opt -> {
+                if (opt.getClusterManager() == null) {
+                    opt.setClusterManager(clusterManager);
+                }
+            });
         }
 
 

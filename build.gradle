@@ -43,11 +43,19 @@ ext {
 dependencies {
     api "org.springframework:spring-core:$springVersion"
     api "org.springframework:spring-context:$springVersion"
-    api "io.vertx:vertx-core:$vertxVersion"
+    api 'io.vertx:vertx-core'
     api "org.springframework.boot:spring-boot:$springBootVersion", optional
     api "org.springframework.boot:spring-boot-autoconfigure:$springBootVersion", optional
     api "org.springframework.boot:spring-boot-actuator:$springBootVersion", optional
     compileOnly "org.springframework.boot:spring-boot-configuration-processor:$springBootVersion"
+
+    // Vert.x cluster manager implementations
+    implementation 'io.vertx:vertx-hazelcast', optional
+    implementation 'io.vertx:vertx-ignite', optional
+    implementation 'io.vertx:vertx-infinispan', optional
+    implementation 'io.vertx:vertx-zookeeper', optional
+
+    implementation 'commons-io:commons-io:2.5'
 
     implementation "org.slf4j:slf4j-api:$slf4jVersion"
 
@@ -66,6 +74,16 @@ dependencies {
 
 
 dependencyManagement {
+    dependencies {
+        dependencySet(group: 'io.vertx', version: vertxVersion) {
+            entry 'vertx-core'
+            entry 'vertx-hazelcast'
+            entry 'vertx-ignite'
+            entry 'vertx-infinispan'
+            entry 'vertx-zookeeper'
+        }
+    }
+
     testImplementation {
         imports {
             mavenBom('org.spockframework:spock-bom:1.1-groovy-2.4')
@@ -75,6 +93,7 @@ dependencyManagement {
     bootTestImplementation {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:$springBootVersion")
+            mavenBom('org.spockframework:spock-bom:1.1-groovy-2.4')
         }
     }
 }

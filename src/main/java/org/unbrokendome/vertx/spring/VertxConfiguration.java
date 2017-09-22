@@ -2,6 +2,7 @@ package org.unbrokendome.vertx.spring;
 
 
 import io.vertx.core.VertxOptions;
+import io.vertx.core.spi.cluster.ClusterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -27,6 +28,7 @@ public class VertxConfiguration {
     @Bean
     public SpringVertx vertx(
             ObjectProvider<VertxOptions> optionsProvider,
+            ObjectProvider<ClusterManager> clusterManagerProvider,
             ObjectProvider<List<VertxListener>> listenersProvider,
             ObjectProvider<List<VertxConfigurer>> configurersProvider) {
 
@@ -35,6 +37,11 @@ public class VertxConfiguration {
         VertxOptions options = optionsProvider.getIfAvailable();
         if (options != null) {
             builder.options(options);
+        }
+
+        ClusterManager clusterManager = clusterManagerProvider.getIfAvailable();
+        if (clusterManager != null) {
+            builder.clusterManager(clusterManager);
         }
 
         List<VertxListener> listeners = listenersProvider.getIfAvailable();
