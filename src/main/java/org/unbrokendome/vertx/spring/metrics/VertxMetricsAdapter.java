@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.metrics.impl.DummyVertxMetrics;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.SocketAddress;
@@ -40,37 +41,37 @@ public interface VertxMetricsAdapter extends VertxMetrics {
 
     @Override
     default EventBusMetrics createMetrics(EventBus eventBus) {
-        return null;
+        return DummyVertxMetrics.DummyEventBusMetrics.INSTANCE;
     }
 
     @Override
     default HttpServerMetrics<?, ?, ?> createMetrics(HttpServer server, SocketAddress localAddress, HttpServerOptions options) {
-        return null;
+        return DummyVertxMetrics.DummyHttpServerMetrics.INSTANCE;
     }
 
     @Override
     default HttpClientMetrics<?, ?, ?, ?, ?> createMetrics(HttpClient client, HttpClientOptions options) {
-        return null;
+        return DummyVertxMetrics.DummyHttpClientMetrics.INSTANCE;
     }
 
     @Override
     default TCPMetrics<?> createMetrics(SocketAddress localAddress, NetServerOptions options) {
-        return null;
+        return DummyVertxMetrics.DummyTCPMetrics.INSTANCE;
     }
 
     @Override
     default TCPMetrics<?> createMetrics(NetClientOptions options) {
-        return null;
+        return DummyVertxMetrics.DummyTCPMetrics.INSTANCE;
     }
 
     @Override
     default DatagramSocketMetrics createMetrics(DatagramSocket socket, DatagramSocketOptions options) {
-        return null;
+        return DummyVertxMetrics.DummyDatagramMetrics.INSTANCE;
     }
 
     @Override
     default <P> PoolMetrics<?> createMetrics(P pool, String poolType, String poolName, int maxPoolSize) {
-        return null;
+        return DummyVertxMetrics.DummyWorkerPoolMetrics.INSTANCE;
     }
 
     @Override
