@@ -5,7 +5,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.dns.AddressResolverOptions;
 import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.metrics.MetricsOptions;
-import io.vertx.core.spi.cluster.ClusterManager;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.core.Ordered;
@@ -28,7 +27,9 @@ import java.util.stream.Collectors;
 
 @ConfigurationProperties(prefix = "vertx")
 @SuppressWarnings({ "unused", "DefaultAnnotationParam" })
-@Order(Ordered.LOWEST_PRECEDENCE)
+// As this class will *replace* the VertxOptions, we use "highest precedence" so this configurer is called first
+// in the chain, giving other configurers a chance to modify the options
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class VertxProperties implements VertxConfigurer {
 
     private boolean autoDeployVerticles = true;

@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 import org.unbrokendome.vertx.spring.events.EventPublishingVertxListener;
 
@@ -34,14 +35,11 @@ public class VertxConfiguration {
 
         SpringVertx.Builder builder = SpringVertx.builder();
 
-        VertxOptions options = optionsProvider.getIfAvailable();
-        if (options != null) {
-            builder.options(options);
-        }
+        List<VertxConfigurer> configurers = new ArrayList<>();
 
         ClusterManager clusterManager = clusterManagerProvider.getIfAvailable();
         if (clusterManager != null) {
-            builder.clusterManager(clusterManager);
+            configurers.add(new ClusterManagerConfigurer(clusterManager));
         }
 
         List<VertxListener> listeners = listenersProvider.getIfAvailable();
@@ -51,17 +49,47 @@ public class VertxConfiguration {
             }
         }
 
-        List<VertxConfigurer> configurers = configurersProvider.getIfAvailable();
-        if (configurers != null) {
+        List<VertxConfigurer> injectedConfigurers = configurersProvider.getIfAvailable();
+        if (injectedConfigurers != null) {
+            configurers.addAll(injectedConfigurers);
+        }
+
+        if (!configurers.isEmpty()) {
             List<VertxConfigurer> sortedConfigurers = new ArrayList<>(configurers);
             AnnotationAwareOrderComparator.sort(sortedConfigurers);
-
             for (VertxConfigurer configurer : sortedConfigurers) {
                 logger.debug("Applying configurer: {}", configurer);
                 configurer.configure(builder);
             }
         }
 
+        // If we have a VertxOptions bean, it will replace all the options possibly gathered by configurers,
+        // so make sure to call it last
+        VertxOptions options = optionsProvider.getIfAvailable();
+        if (options != null) {
+            builder.options(options);
+        }
+
         return builder.build();
+    }
+
+
+    private static class ClusterManagerConfigurer implements VertxConfigurer, Ordered {
+
+        private final ClusterManager clusterManager;
+
+        public ClusterManagerConfigurer(ClusterManager clusterManager) {
+            this.clusterManager = clusterManager;
+        }
+
+        @Override
+        public int getOrder() {
+            return HIGHEST_PRECEDENCE + 1;
+        }
+
+        @Override
+        public void configure(SpringVertx.Builder builder) {
+            builder.clusterManager(clusterManager);
+        }
     }
 }
