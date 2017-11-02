@@ -11,29 +11,12 @@ import org.springframework.context.annotation.Import;
 import org.unbrokendome.vertx.spring.SpringVertx;
 import org.unbrokendome.vertx.spring.VerticleDeploymentConfiguration;
 import org.unbrokendome.vertx.spring.VertxConfiguration;
-import org.unbrokendome.vertx.spring.VertxConfigurer;
 import org.unbrokendome.vertx.spring.actuator.metrics.VertxMetricsConfiguration;
 
 
 @Configuration
+@EnableConfigurationProperties(VertxProperties.class)
 public class VertxAutoConfiguration {
-
-    @Configuration
-    @EnableConfigurationProperties(VertxProperties.class)
-    public static class PropertiesVertxConfigurer implements VertxConfigurer {
-
-        private final VertxProperties vertxProperties;
-
-        public PropertiesVertxConfigurer(VertxProperties vertxProperties) {
-            this.vertxProperties = vertxProperties;
-        }
-
-        @Override
-        public void configure(SpringVertx.Builder builder) {
-            builder.options(vertxProperties.toVertxOptions());
-        }
-    }
-
 
     @Configuration
     @ConditionalOnMissingBean(SpringVertx.class)
